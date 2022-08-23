@@ -20,5 +20,5 @@ def plot_confusion_matrix(cm, labels_name, title):
     plt.xlabel('Prediction')
     plt.imshow(cm, interpolation='nearest', cmap=plt.get_cmap('Blues'))
     plt.tight_layout()
-    plt.savefig("./plots/cm.png", format='png')
+    plt.savefig("./plots/cm_std.png", format='png')
     plt.show()

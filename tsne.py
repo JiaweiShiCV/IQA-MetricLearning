@@ -18,7 +18,7 @@ import pandas as pd
 from pandasgui import show
 
 
-def plot_TSNE(feature, label, labelname_list, dims=2, enable_pandasgui=True):
+def plot_TSNE(feature, label, labelname_list, paths, dims=2, enable_pandasgui=True):
     tsne = TSNE(n_components=dims)
     tsne.fit_transform(feature)
 
@@ -47,16 +47,16 @@ def plot_TSNE(feature, label, labelname_list, dims=2, enable_pandasgui=True):
     plt.savefig('./plots/tsne.png')
     
     if enable_pandasgui:
-        data = np.concatenate((x[:, None], y[:, None], label[:, None]+2, labelnames[:, None]), axis=1)
-        df = pd.DataFrame(data, columns=['x', 'y', 'labelnum', 'labelname'])
+        data = np.concatenate((x[:, None], y[:, None], label[:, None]+2, labelnames[:, None], paths[:, None]), axis=1)
+        df = pd.DataFrame(data, columns=['x', 'y', 'labelnum', 'labelname', 'paths'])
         df = df.astype({'x': 'float', 'y': 'float', 'labelnum': 'float'})
         show(df)
 
 # 设置类别标签
-labelname_list = ['grayscale', 'brighterror', 'angleerror', 'occlude', 'blur', 'biterror']
-label_dict = {}
-for idx, label in enumerate(labelname_list):
-    label_dict[label] = idx
+# labelname_list = ['grayscale', 'brighterror', 'angleerror', 'occlude', 'blur', 'biterror']
+labelname_list = ImagePathDataset.get_labelname_list('img')
+label_dict = ImagePathDataset.get_label_dict(labelname_list)
+
 print(label_dict)
 
 mean, std = [], []
@@ -74,7 +74,8 @@ if __name__ == "__main__":
     points = torch.load('points.pt', map_location='cpu')
     features = points['feat'].numpy()
     labels = points['label'].numpy()
-
-    plot_TSNE(features, labels, labelname_list, 2)
+    preds = points['pred'].numpy()
+    paths = np.array(points['path'])
+    plot_TSNE(features, labels, labelname_list, paths, 2)
 
 

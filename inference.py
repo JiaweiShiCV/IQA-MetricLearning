@@ -13,11 +13,7 @@ from dataset import ImagePathDataset
 
 
 # 设置类别标签
-labelname_list = ['grayscale', 'brighterror', 'angleerror', 'occlude', 'blur', 'biterror']
-label_dict = {}
-for idx, label in enumerate(labelname_list):
-    label_dict[label] = idx
-print(label_dict)
+labelname_list = ['angleerror', 'biterror', 'blur', 'brighterror', 'close', 'far', 'grayscale', 'occlude',]
 
 mean, std = [], []
 for name in labelname_list:
@@ -38,7 +34,7 @@ if __name__ == "__main__":
         transforms.ToTensor(),
     ])
 
-    dataset = ImagePathDataset(dir, label_dict, data_transforms)
+    dataset = ImagePathDataset(dir, data_transforms, labelname_list)
     print(len(dataset))
     # dataset.check_paths()
     print(f"Total num: {len(dataset)}.")
@@ -46,27 +42,29 @@ if __name__ == "__main__":
     # model
     extractor = torch.jit.load('inception-2015-12-05.pt').eval()
 
-    labels, preds, paths = [], [], []
+    features, labels, preds, paths = [], [], [], []
     counter = 0
     for idx, batch in enumerate(dataloader):
         
         img_batch = batch['img']
         label_batch = batch['label']
         path_batch = batch['path']
-
         counter += img_batch.size(0)
 
-        features = extractor(img_batch, return_features=True)
+        feature_batch = extractor(img_batch, return_features=True)
 
-        features_repeat = torch.repeat_interleave(features[:, None, :], repeats=6, dim=1)
-        distmat = (features_repeat - mean) / (std+1e-9) 
+        feature_batch_repeat = torch.repeat_interleave(feature_batch[:, None, :], repeats=dataset.class_num(), dim=1)
+        distmat = (feature_batch_repeat - mean) / (std+1e-9) 
         distmat = torch.norm(distmat, dim=2, p=2) 
         _, pred_batch = torch.min(distmat, dim=1)
+
+        features.append(feature_batch)
         labels.append(label_batch)
         preds.append(pred_batch)
         paths.extend(path_batch)
         print(f"{idx}, {counter}")
 
+    features = torch.cat(features)
     labels = torch.cat(labels)
     preds = torch.cat(preds)
     torch.save(
@@ -80,6 +78,6 @@ if __name__ == "__main__":
     cm = np.array(confusion_matrix(np.array(labels), np.array(preds)))
 
     # labels_name = os.listdir(dir)
-    plot_confusion_matrix(cm, labelname_list, f"CMatrix-acc{acc:.2f}")
+    plot_confusion_matrix(cm, labelname_list, f"CMatrix-acc{acc:.2f}", acc)
 
 

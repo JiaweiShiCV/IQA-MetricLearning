@@ -18,7 +18,7 @@ import pandas as pd
 from pandasgui import show
 
 
-def plot_TSNE(feature, label, labelname_list, paths, dims=2, enable_pandasgui=True):
+def plot_TSNE(feature, label, pred, labelname_list, paths, dims=2, enable_pandasgui=True):
     tsne = TSNE(n_components=dims)
     tsne.fit_transform(feature)
 
@@ -33,8 +33,7 @@ def plot_TSNE(feature, label, labelname_list, paths, dims=2, enable_pandasgui=Tr
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         scatter = ax.scatter(x, y, c=label, s=(label+10)*2, alpha=0.5)
-        # for i in range(len(x)):
-        #     ax.text(x[i],y[i], label[i])
+
     elif tsne.embedding_.shape[1] == 3:
         z = tsne.embedding_[:, 2]
         ax = plt.gca(projection='3d')
@@ -47,35 +46,29 @@ def plot_TSNE(feature, label, labelname_list, paths, dims=2, enable_pandasgui=Tr
     plt.savefig('./plots/tsne.png')
     
     if enable_pandasgui:
-        data = np.concatenate((x[:, None], y[:, None], label[:, None]+2, labelnames[:, None], paths[:, None]), axis=1)
-        df = pd.DataFrame(data, columns=['x', 'y', 'labelnum', 'labelname', 'paths'])
-        df = df.astype({'x': 'float', 'y': 'float', 'labelnum': 'float'})
+        data = np.concatenate(
+            (x[:, None], y[:, None], label[:, None]+1, pred[:, None]+1, labelnames[:, None], paths[:, None]),
+            axis=1,
+        )
+        df = pd.DataFrame(
+            data, 
+            columns=['x', 'y', 'labelnum', 'pred', 'labelname', 'paths'],
+        )
+        df = df.astype({'x': 'float', 'y': 'float', 'pred': 'float', 'labelnum': 'float'})
         show(df)
-
-# 设置类别标签
-# labelname_list = ['grayscale', 'brighterror', 'angleerror', 'occlude', 'blur', 'biterror']
-labelname_list = ImagePathDataset.get_labelname_list('img')
-label_dict = ImagePathDataset.get_label_dict(labelname_list)
-
-print(label_dict)
-
-mean, std = [], []
-for name in labelname_list:
-    with open(f"inception_{name}.pkl", 'rb') as f:
-        info = pickle.load(f)
-    mean.append(info['mean'][None, :]) 
-    std.append(info['std'][None, :])
-mean = torch.from_numpy(np.concatenate(mean, axis=0))
-std = torch.from_numpy(np.concatenate(std, axis=0))
-# print(mean.shape, std.shape)
 
 
 if __name__ == "__main__":
-    points = torch.load('points.pt', map_location='cpu')
+    points = torch.load('points/points_neighbor_euclidean_ResNet50.pt', map_location='cpu')
     features = points['feat'].numpy()
     labels = points['label'].numpy()
     preds = points['pred'].numpy()
-    paths = np.array(points['path'])
-    plot_TSNE(features, labels, labelname_list, paths, 2)
+    paths = np.array(points['path']) 
+    labelname_list = points['labelname_list']
+
+    label_dict = ImagePathDataset.get_label_dict(labelname_list)
+    print(label_dict)
+    
+    plot_TSNE(features, labels, preds, labelname_list, paths, 2)
 
 

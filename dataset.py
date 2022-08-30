@@ -5,10 +5,11 @@ import cv2
 class ImagePathDataset(data.Dataset):
     def __init__(self, dir, transforms=None, labelname_list=None):
         self.transforms = transforms
-        self.labelname_list = labelname_list if labelname_list is not None else self.get_labelname_list(dir)
+        self._labelname_list = labelname_list if labelname_list is not None else self.get_labelname_list(dir)
+        self._class_num = len(self._labelname_list)
         self.label_dict = self.get_label_dict(labelname_list)
-        self.files = self.get_fpathlist(dir)
-        self.files = self.filter_paths(self.files, self.label_dict)
+        self.files = self.get_fpaths(dir)
+        self.files = self.filter_fpaths(self.files, self.label_dict)
 
     def __len__(self):
         return len(self.files)
@@ -26,8 +27,13 @@ class ImagePathDataset(data.Dataset):
             'path': path,
         } 
     
+    @property
     def class_num(self):
-        return len(self.labelname_list)
+        return self._class_num
+
+    @property
+    def labelname_list(self):
+        return self._labelname_list
 
     @staticmethod
     def check(path, label_dict):
@@ -43,7 +49,7 @@ class ImagePathDataset(data.Dataset):
         return label_dict[labelname]
     
     @staticmethod
-    def filter_paths(paths, label_dict):
+    def filter_fpaths(paths, label_dict):
         # from multiprocessing import Pool
         # def check(path):
         for idx, path in enumerate(paths):
@@ -59,7 +65,7 @@ class ImagePathDataset(data.Dataset):
         return paths
 
     @staticmethod
-    def get_fpathlist(dir):
+    def get_fpaths(dir):
         fpathlist = []
         for root, dirs, files in os.walk(dir, topdown=False):
             counter = 0

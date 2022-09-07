@@ -3,3 +3,6 @@ points
 *.pt
 normal
 .html
+picked
+cache
+inception_feats
